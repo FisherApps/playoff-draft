@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playoff Fantasy Draft</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Setup Phase View -->
+  <div id="setup-view" class="view">
+    <div class="setup-container">
+      <h1>Playoff Fantasy Football Draft</h1>
+      <p class="subtitle">Draft players from the 2024-2025 NFL Playoff Teams</p>
+
+      <div id="join-form">
+        <input type="text" id="team-name-input" placeholder="Enter your team name" maxlength="20">
+        <button id="join-button">Join Draft</button>
+      </div>
+
+      <div id="joined-message" style="display: none;">
+        <p>You joined as: <strong id="your-team-name"></strong></p>
+      </div>
+
+      <div id="teams-list">
+        <h2>Teams Joined (<span id="team-count">0</span>/8)</h2>
+        <ul id="teams-ul"></ul>
+      </div>
+
+      <button id="start-draft-button" class="start-btn" style="display: none;">Start Draft</button>
+      <p id="waiting-message" style="display: none;">Waiting for more teams to join...</p>
+    </div>
+  </div>
+
+  <!-- Draft Phase View -->
+  <div id="draft-view" class="view" style="display: none;">
+    <div id="draft-header">
+      <h1>Playoff Fantasy Draft</h1>
+      <div id="current-pick-indicator">
+        <div id="pick-number"></div>
+        <div id="pick-team"></div>
+      </div>
+    </div>
+
+    <div id="draft-main">
+      <!-- Left sidebar: Draft order & teams -->
+      <aside id="draft-sidebar">
+        <div id="draft-order-section">
+          <h2>Draft Order</h2>
+          <div id="draft-order-list"></div>
+        </div>
+        <div id="teams-section">
+          <h2>All Teams</h2>
+          <div id="teams-roster-list"></div>
+        </div>
+      </aside>
+
+      <!-- Center: Available players -->
+      <main id="players-section">
+        <div id="players-header">
+          <h2>Available Players</h2>
+          <div id="filters">
+            <div id="position-filter">
+              <button class="filter-btn active" data-position="ALL">All</button>
+              <button class="filter-btn" data-position="QB">QB</button>
+              <button class="filter-btn" data-position="RB">RB</button>
+              <button class="filter-btn" data-position="WR">WR</button>
+              <button class="filter-btn" data-position="TE">TE</button>
+              <button class="filter-btn" data-position="K">K</button>
+            </div>
+            <input type="text" id="player-search" placeholder="Search players...">
+          </div>
+        </div>
+        <div id="players-grid"></div>
+        <div id="no-players-message" style="display: none;">No players match your filters</div>
+      </main>
+
+      <!-- Right sidebar: Your roster & recent picks -->
+      <aside id="roster-sidebar">
+        <div id="your-roster-section">
+          <h2>Your Roster</h2>
+          <div id="your-roster"></div>
+        </div>
+        <div id="recent-picks-section">
+          <h2>Recent Picks</h2>
+          <ul id="recent-picks-list"></ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Complete Phase View -->
+  <div id="complete-view" class="view" style="display: none;">
+    <div class="complete-container">
+      <h1>Draft Complete!</h1>
+      <p class="subtitle">All teams have completed their rosters</p>
+      <button id="download-results-button" class="download-btn" onclick="downloadResults()">Download Results</button>
+      <div id="final-rosters"></div>
+    </div>
+  </div>
+
+  <!-- Chat Box (visible during draft) -->
+  <div id="chat-container" style="display: none;">
+    <div id="chat-header" onclick="toggleChat()">
+      <span>League Chat</span>
+      <span id="chat-toggle-icon">▼</span>
+    </div>
+    <div id="chat-body">
+      <div id="chat-messages"></div>
+      <div id="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200">
+        <button id="chat-send-btn" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="notification" class="notification" style="display: none;"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

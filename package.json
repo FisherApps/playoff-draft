@@ -1,0 +1,16 @@
+{
+  "name": "playoff-fantasy-draft",
+  "version": "1.0.0",
+  "description": "Real-time fantasy football draft for NFL playoffs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

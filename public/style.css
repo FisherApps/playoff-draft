@@ -1,0 +1,764 @@
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background-color: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+}
+
+.view {
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: #aaa;
+}
+
+h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #888;
+}
+
+/* Setup View */
+.setup-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.subtitle {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+#join-form {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+#team-name-input {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #16213e;
+  color: #fff;
+  width: 250px;
+}
+
+#team-name-input:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+#join-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#join-button:hover {
+  background: #3a7bc8;
+}
+
+#joined-message {
+  background: #16213e;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+#joined-message strong {
+  color: #4a90d9;
+}
+
+#teams-list {
+  background: #16213e;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+#teams-ul {
+  list-style: none;
+  text-align: left;
+}
+
+#teams-ul li {
+  padding: 0.75rem 1rem;
+  background: #1a1a2e;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+}
+
+#teams-ul li.my-team {
+  background: #2d4a3e;
+  border-left: 3px solid #4caf50;
+}
+
+.start-btn {
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.start-btn:hover {
+  background: #45a049;
+}
+
+#waiting-message {
+  color: #888;
+  font-style: italic;
+}
+
+/* Draft View */
+#draft-header {
+  background: #16213e;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333;
+}
+
+#draft-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+#current-pick-indicator {
+  text-align: right;
+  padding: 0.75rem 1.5rem;
+  background: #333;
+  border-radius: 8px;
+}
+
+#current-pick-indicator.your-turn {
+  background: #2d4a3e;
+  border: 2px solid #4caf50;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+#pick-number {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+#pick-team {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+#current-pick-indicator.your-turn #pick-team {
+  color: #4caf50;
+}
+
+#draft-main {
+  display: grid;
+  grid-template-columns: 250px 1fr 280px;
+  gap: 1rem;
+  padding: 1rem;
+  height: calc(100vh - 80px);
+  overflow: hidden;
+}
+
+/* Sidebars */
+#draft-sidebar, #roster-sidebar {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+#draft-order-section, #teams-section, #your-roster-section, #recent-picks-section {
+  margin-bottom: 1.5rem;
+}
+
+/* Draft Order */
+.draft-pick {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border-radius: 4px;
+  background: #1a1a2e;
+}
+
+.draft-pick.current {
+  background: #3d3d00;
+  border-left: 3px solid #ffc107;
+}
+
+.draft-pick.my-pick {
+  background: #2d4a3e;
+}
+
+.draft-pick.current.my-pick {
+  background: #2d5a3e;
+  border-left: 3px solid #4caf50;
+}
+
+.pick-num {
+  font-size: 0.85rem;
+  color: #888;
+  width: 40px;
+}
+
+.pick-team-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Teams Summary */
+.team-summary {
+  background: #1a1a2e;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.team-summary:hover {
+  background: #252545;
+}
+
+.team-summary.my-team {
+  border-left: 3px solid #4caf50;
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+}
+
+.team-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-count {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.team-detail {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid #333;
+}
+
+.mini-roster .position-row {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 0.25rem;
+}
+
+/* Players Section */
+#players-section {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+#players-header {
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+#filters {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#position-filter {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  color: #aaa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #252545;
+}
+
+.filter-btn.active {
+  background: #4a90d9;
+  color: white;
+  border-color: #4a90d9;
+}
+
+#player-search {
+  padding: 0.5rem 1rem;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+#player-search:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+#players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#no-players-message {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+}
+
+/* Player Card */
+.player-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1a1a2e;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.player-card:hover {
+  background: #252545;
+}
+
+.player-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.player-details {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.position-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.position-QB { background: #c62828; }
+.position-RB { background: #2e7d32; }
+.position-WR { background: #1565c0; }
+.position-TE { background: #f57c00; }
+.position-K { background: #6a1b9a; }
+
+.team-abbr {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.draft-btn {
+  padding: 0.5rem 1rem;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.draft-btn:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.draft-btn:disabled {
+  background: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* Your Roster */
+.roster-section .position-group {
+  margin-bottom: 1rem;
+}
+
+.roster-section h3 {
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-slot {
+  color: #555;
+  font-style: italic;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.roster-player {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.roster-player-team {
+  color: #888;
+}
+
+/* Recent Picks */
+#recent-picks-list {
+  list-style: none;
+}
+
+.recent-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #333;
+  font-size: 0.85rem;
+}
+
+.recent-pick .pick-number {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.recent-pick .pick-info strong {
+  color: #4a90d9;
+}
+
+.no-picks {
+  color: #555;
+  font-style: italic;
+}
+
+/* Complete View */
+.complete-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.complete-container h1 {
+  font-size: 2.5rem;
+  color: #4caf50;
+  margin-bottom: 0.5rem;
+}
+
+.download-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin: 1rem 0;
+  transition: background 0.2s;
+}
+
+.download-btn:hover {
+  background: #3a7bc8;
+}
+
+#final-rosters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+  text-align: left;
+}
+
+.final-team {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.final-team.my-team {
+  border: 2px solid #4caf50;
+}
+
+.final-team h3 {
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.final-position {
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.final-position strong {
+  color: #888;
+}
+
+/* Chat Box */
+#chat-container {
+  position: fixed;
+  bottom: 0;
+  right: 20px;
+  width: 300px;
+  background: #16213e;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  font-size: 0.9rem;
+}
+
+#chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #1a1a2e;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+#chat-header:hover {
+  background: #252545;
+}
+
+#chat-toggle-icon {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+#chat-body {
+  display: flex;
+  flex-direction: column;
+  height: 250px;
+}
+
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-message {
+  background: #1a1a2e;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border-left: 3px solid #4a90d9;
+}
+
+.chat-message.my-message {
+  border-left-color: #4caf50;
+  background: #1a2e1a;
+}
+
+.chat-sender {
+  font-weight: 600;
+  color: #4a90d9;
+  font-size: 0.8rem;
+}
+
+.chat-message.my-message .chat-sender {
+  color: #4caf50;
+}
+
+.chat-time {
+  color: #666;
+  font-size: 0.7rem;
+  margin-left: 0.5rem;
+}
+
+.chat-text {
+  margin-top: 0.25rem;
+  word-break: break-word;
+}
+
+#chat-input-area {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-top: 1px solid #333;
+}
+
+#chat-input {
+  flex: 1;
+  padding: 0.5rem;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+#chat-input:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+#chat-send-btn {
+  padding: 0.5rem 1rem;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+#chat-send-btn:hover {
+  background: #3a7bc8;
+}
+
+/* Notification */
+.notification {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  #draft-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  #draft-sidebar {
+    order: 1;
+    display: flex;
+    gap: 1rem;
+  }
+
+  #draft-order-section, #teams-section {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  #players-section {
+    order: 2;
+    max-height: 50vh;
+  }
+
+  #roster-sidebar {
+    order: 3;
+    display: flex;
+    gap: 1rem;
+  }
+
+  #your-roster-section, #recent-picks-section {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  #draft-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  #current-pick-indicator {
+    text-align: center;
+    width: 100%;
+  }
+
+  #filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #position-filter {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #draft-sidebar, #roster-sidebar {
+    flex-direction: column;
+  }
+}

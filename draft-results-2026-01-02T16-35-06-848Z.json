@@ -1,0 +1,194 @@
+{
+  "completedAt": "2026-01-02T16:35:06.848Z",
+  "draftId": "draft-1767371648946-pqp6um",
+  "teams": [
+    {
+      "name": "team 1",
+      "roster": {
+        "QB": [
+          {
+            "name": "Jalen Hurts",
+            "team": "PHI"
+          }
+        ],
+        "RB": [
+          {
+            "name": "Jaleel McLaughlin",
+            "team": "DEN"
+          },
+          {
+            "name": "Isiah Pacheco",
+            "team": "KC"
+          }
+        ],
+        "WR_TE": [
+          {
+            "name": "Ladd McConkey",
+            "team": "LAC",
+            "position": "WR"
+          },
+          {
+            "name": "Luke McCaffrey",
+            "team": "WAS",
+            "position": "WR"
+          },
+          {
+            "name": "Zach Ertz",
+            "team": "WAS",
+            "position": "TE"
+          }
+        ],
+        "K": [
+          {
+            "name": "Brayden Narveson",
+            "team": "GB"
+          }
+        ]
+      }
+    },
+    {
+      "name": "team2",
+      "roster": {
+        "QB": [
+          {
+            "name": "Hendon Hooker",
+            "team": "DET"
+          }
+        ],
+        "RB": [
+          {
+            "name": "Chris Brooks",
+            "team": "GB"
+          },
+          {
+            "name": "Cordarrelle Patterson",
+            "team": "PIT"
+          }
+        ],
+        "WR_TE": [
+          {
+            "name": "Brandon Powell",
+            "team": "MIN",
+            "position": "WR"
+          },
+          {
+            "name": "Tank Dell",
+            "team": "HOU",
+            "position": "WR"
+          },
+          {
+            "name": "Romeo Doubs",
+            "team": "GB",
+            "position": "WR"
+          }
+        ],
+        "K": [
+          {
+            "name": "Jake Bates",
+            "team": "DET"
+          }
+        ]
+      }
+    }
+  ],
+  "pickHistory": [
+    {
+      "pickNumber": 1,
+      "teamName": "team 1",
+      "playerName": "Jalen Hurts",
+      "position": "QB",
+      "nflTeam": "PHI"
+    },
+    {
+      "pickNumber": 2,
+      "teamName": "team2",
+      "playerName": "Hendon Hooker",
+      "position": "QB",
+      "nflTeam": "DET"
+    },
+    {
+      "pickNumber": 3,
+      "teamName": "team2",
+      "playerName": "Chris Brooks",
+      "position": "RB",
+      "nflTeam": "GB"
+    },
+    {
+      "pickNumber": 4,
+      "teamName": "team 1",
+      "playerName": "Jaleel McLaughlin",
+      "position": "RB",
+      "nflTeam": "DEN"
+    },
+    {
+      "pickNumber": 5,
+      "teamName": "team 1",
+      "playerName": "Isiah Pacheco",
+      "position": "RB",
+      "nflTeam": "KC"
+    },
+    {
+      "pickNumber": 6,
+      "teamName": "team2",
+      "playerName": "Cordarrelle Patterson",
+      "position": "RB",
+      "nflTeam": "PIT"
+    },
+    {
+      "pickNumber": 7,
+      "teamName": "team2",
+      "playerName": "Brandon Powell",
+      "position": "WR",
+      "nflTeam": "MIN"
+    },
+    {
+      "pickNumber": 8,
+      "teamName": "team 1",
+      "playerName": "Ladd McConkey",
+      "position": "WR",
+      "nflTeam": "LAC"
+    },
+    {
+      "pickNumber": 9,
+      "teamName": "team 1",
+      "playerName": "Luke McCaffrey",
+      "position": "WR",
+      "nflTeam": "WAS"
+    },
+    {
+      "pickNumber": 10,
+      "teamName": "team2",
+      "playerName": "Tank Dell",
+      "position": "WR",
+      "nflTeam": "HOU"
+    },
+    {
+      "pickNumber": 11,
+      "teamName": "team2",
+      "playerName": "Romeo Doubs",
+      "position": "WR",
+      "nflTeam": "GB"
+    },
+    {
+      "pickNumber": 12,
+      "teamName": "team 1",
+      "playerName": "Zach Ertz",
+      "position": "TE",
+      "nflTeam": "WAS"
+    },
+    {
+      "pickNumber": 13,
+      "teamName": "team 1",
+      "playerName": "Brayden Narveson",
+      "position": "K",
+      "nflTeam": "GB"
+    },
+    {
+      "pickNumber": 14,
+      "teamName": "team2",
+      "playerName": "Jake Bates",
+      "position": "K",
+      "nflTeam": "DET"
+    }
+  ]
+}
