@@ -15,6 +15,11 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Generate unique draft ID on server start (used to invalidate old client sessions)
 const DRAFT_ID = 'draft-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
 console.log(`Draft ID: ${DRAFT_ID}`);
