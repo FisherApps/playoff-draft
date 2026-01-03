@@ -34,10 +34,12 @@ try {
 const draftState = {
   phase: 'setup', // 'setup' | 'drafting' | 'complete'
   teams: [],
+  watchers: [], // People watching but not drafting
   draftOrder: [],
   currentPickIndex: 0,
   picks: [],
-  draftedPlayerIds: new Set()
+  draftedPlayerIds: new Set(),
+  paused: false
 };
 
 // Chat messages (kept separate, not sent with every state update)
@@ -61,6 +63,16 @@ function findTeamById(teamId) {
 // Helper: Find team by name (case-insensitive)
 function findTeamByName(name) {
   return draftState.teams.find(t => t.name.toLowerCase() === name.toLowerCase());
+}
+
+// Helper: Find watcher by socket ID
+function findWatcherBySocketId(socketId) {
+  return draftState.watchers.find(w => w.socketId === socketId);
+}
+
+// Helper: Find watcher by name (case-insensitive)
+function findWatcherByName(name) {
+  return draftState.watchers.find(w => w.name.toLowerCase() === name.toLowerCase());
 }
 
 // Helper: Get current picker team
@@ -122,10 +134,12 @@ function serializeDraftState() {
     draftId: DRAFT_ID,
     phase: draftState.phase,
     teams: draftState.teams,
+    watchers: draftState.watchers.map(w => ({ id: w.id, name: w.name })),
     draftOrder: draftState.draftOrder,
     currentPickIndex: draftState.currentPickIndex,
     picks: draftState.picks,
-    draftedPlayerIds: Array.from(draftState.draftedPlayerIds)
+    draftedPlayerIds: Array.from(draftState.draftedPlayerIds),
+    paused: draftState.paused
   };
 }
 
@@ -293,6 +307,49 @@ io.on('connection', (socket) => {
     io.emit('draft-state-updated', serializeDraftState());
   });
 
+  // Join as watcher (spectator mode)
+  socket.on('join-as-watcher', (data) => {
+    const { watcherName } = data;
+
+    // Validation
+    if (!watcherName || watcherName.trim() === '') {
+      socket.emit('error', { message: 'Name cannot be empty' });
+      return;
+    }
+
+    const trimmedName = watcherName.trim();
+
+    // Check if this name is already a team
+    const existingTeam = findTeamByName(trimmedName);
+    if (existingTeam) {
+      socket.emit('error', { message: 'This name is already registered as a team. Use "Join Draft" instead.' });
+      return;
+    }
+
+    // Check if reconnecting as existing watcher
+    const existingWatcher = findWatcherByName(trimmedName);
+    if (existingWatcher) {
+      existingWatcher.socketId = socket.id;
+      console.log(`Watcher "${trimmedName}" reconnected with socket ${socket.id}`);
+      socket.emit('joined-as-watcher', { watcherId: existingWatcher.id, watcherName: existingWatcher.name });
+      io.emit('draft-state-updated', serializeDraftState());
+      return;
+    }
+
+    // Create new watcher
+    const newWatcher = {
+      id: 'watcher-' + Math.random().toString(36).substr(2, 9),
+      name: trimmedName,
+      socketId: socket.id
+    };
+
+    draftState.watchers.push(newWatcher);
+    console.log(`Watcher "${trimmedName}" joined to watch the draft`);
+
+    socket.emit('joined-as-watcher', { watcherId: newWatcher.id, watcherName: newWatcher.name });
+    io.emit('draft-state-updated', serializeDraftState());
+  });
+
   // Start draft
   socket.on('start-draft', () => {
     // Validation
@@ -325,6 +382,12 @@ io.on('connection', (socket) => {
     // Validation: Phase check
     if (draftState.phase !== 'drafting') {
       socket.emit('error', { message: 'Draft is not in progress' });
+      return;
+    }
+
+    // Validation: Pause check
+    if (draftState.paused) {
+      socket.emit('error', { message: 'Draft is paused' });
       return;
     }
 
@@ -405,9 +468,11 @@ io.on('connection', (socket) => {
   socket.on('chat-message', (data) => {
     const { message } = data;
 
-    // Find the team sending this message
+    // Find the team or watcher sending this message
     const team = findTeamBySocketId(socket.id);
-    if (!team) {
+    const watcher = findWatcherBySocketId(socket.id);
+
+    if (!team && !watcher) {
       socket.emit('error', { message: 'You must join the draft to chat' });
       return;
     }
@@ -419,10 +484,13 @@ io.on('connection', (socket) => {
 
     const trimmedMessage = message.trim().substring(0, 200); // Limit to 200 chars
 
+    const senderId = team ? team.id : watcher.id;
+    const senderName = team ? team.name : watcher.name;
+
     const chatMessage = {
       id: Date.now() + '-' + Math.random().toString(36).substr(2, 6),
-      teamId: team.id,
-      teamName: team.name,
+      teamId: senderId,
+      teamName: senderName + (watcher ? ' (Spectator)' : ''),
       message: trimmedMessage,
       timestamp: Date.now()
     };
@@ -443,12 +511,114 @@ io.on('connection', (socket) => {
     socket.emit('chat-history', chatMessages);
   });
 
+  // Pause draft (BD Crushers only)
+  socket.on('pause-draft', () => {
+    const team = findTeamBySocketId(socket.id);
+    if (!team || team.name !== 'BD Crushers') {
+      socket.emit('error', { message: 'Unauthorized' });
+      return;
+    }
+
+    if (draftState.phase !== 'drafting') {
+      socket.emit('error', { message: 'Draft is not in progress' });
+      return;
+    }
+
+    draftState.paused = true;
+    console.log('Draft paused by BD Crushers');
+    io.emit('draft-state-updated', serializeDraftState());
+  });
+
+  // Resume draft (BD Crushers only)
+  socket.on('resume-draft', () => {
+    const team = findTeamBySocketId(socket.id);
+    if (!team || team.name !== 'BD Crushers') {
+      socket.emit('error', { message: 'Unauthorized' });
+      return;
+    }
+
+    if (draftState.phase !== 'drafting') {
+      socket.emit('error', { message: 'Draft is not in progress' });
+      return;
+    }
+
+    draftState.paused = false;
+    console.log('Draft resumed by BD Crushers');
+    io.emit('draft-state-updated', serializeDraftState());
+  });
+
+  // Undo pick (BD Crushers only, draft must be paused)
+  socket.on('undo-pick', (data) => {
+    const { pickNumber } = data;
+    const team = findTeamBySocketId(socket.id);
+
+    if (!team || team.name !== 'BD Crushers') {
+      socket.emit('error', { message: 'Unauthorized' });
+      return;
+    }
+
+    if (draftState.phase !== 'drafting') {
+      socket.emit('error', { message: 'Draft is not in progress' });
+      return;
+    }
+
+    if (!draftState.paused) {
+      socket.emit('error', { message: 'Draft must be paused to undo picks' });
+      return;
+    }
+
+    // Find the pick to undo
+    const pickIndex = draftState.picks.findIndex(p => p.pickNumber === pickNumber);
+    if (pickIndex === -1) {
+      socket.emit('error', { message: 'Pick not found' });
+      return;
+    }
+
+    const pick = draftState.picks[pickIndex];
+    const pickTeam = findTeamById(pick.teamId);
+    const player = allPlayers.find(p => p.id === pick.playerId);
+
+    if (!pickTeam || !player) {
+      socket.emit('error', { message: 'Invalid pick data' });
+      return;
+    }
+
+    // Remove player from team roster
+    const rosterSlot = getRosterSlot(player.position);
+    const playerIndex = pickTeam.roster[rosterSlot].findIndex(p => p.id === pick.playerId);
+    if (playerIndex !== -1) {
+      pickTeam.roster[rosterSlot].splice(playerIndex, 1);
+    }
+
+    // Remove from drafted players
+    draftState.draftedPlayerIds.delete(pick.playerId);
+
+    // Remove from picks array
+    draftState.picks.splice(pickIndex, 1);
+
+    // Adjust currentPickIndex if needed (go back one pick)
+    if (draftState.currentPickIndex > 0) {
+      draftState.currentPickIndex--;
+    }
+
+    console.log(`Pick #${pickNumber} undone by BD Crushers: ${player.name} removed from ${pickTeam.name}`);
+
+    // Notify all clients
+    io.emit('draft-state-updated', serializeDraftState());
+    io.emit('players-updated', getAvailablePlayers());
+  });
+
   // Disconnect handling
   socket.on('disconnect', () => {
     const team = findTeamBySocketId(socket.id);
     if (team) {
       team.socketId = null;
       console.log(`Team "${team.name}" disconnected`);
+    }
+    const watcher = findWatcherBySocketId(socket.id);
+    if (watcher) {
+      watcher.socketId = null;
+      console.log(`Watcher "${watcher.name}" disconnected`);
     }
     console.log(`Client disconnected: ${socket.id}`);
   });

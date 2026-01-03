@@ -3,13 +3,17 @@ let socket = null;
 let localState = {
   myTeamId: null,
   myTeamName: null,
+  isWatcher: false,  // true if joined as spectator
+  myWatcherId: null,
+  myWatcherName: null,
   currentView: 'setup',
   selectedPosition: 'ALL',
   searchQuery: '',
   draftState: null,
   availablePlayers: [],
   chatMessages: [],
-  chatOpen: true
+  chatOpen: false,
+  unreadCount: 0
 };
 
 // DOM Elements
@@ -18,9 +22,12 @@ const elements = {
   setupView: document.getElementById('setup-view'),
   teamNameInput: document.getElementById('team-name-input'),
   joinButton: document.getElementById('join-button'),
+  watchButton: document.getElementById('watch-button'),
   joinForm: document.getElementById('join-form'),
   joinedMessage: document.getElementById('joined-message'),
+  watchingMessage: document.getElementById('watching-message'),
   yourTeamName: document.getElementById('your-team-name'),
+  yourWatcherName: document.getElementById('your-watcher-name'),
   teamCount: document.getElementById('team-count'),
   teamsUl: document.getElementById('teams-ul'),
   startDraftButton: document.getElementById('start-draft-button'),
@@ -31,18 +38,21 @@ const elements = {
   pickNumber: document.getElementById('pick-number'),
   pickTeam: document.getElementById('pick-team'),
   currentPickIndicator: document.getElementById('current-pick-indicator'),
-  draftOrderList: document.getElementById('draft-order-list'),
+  pauseResumeBtn: document.getElementById('pause-resume-btn'),
+  draftTicker: document.getElementById('draft-ticker-inner'),
   teamsRosterList: document.getElementById('teams-roster-list'),
   positionFilter: document.getElementById('position-filter'),
   playerSearch: document.getElementById('player-search'),
   playersGrid: document.getElementById('players-grid'),
   noPlayersMessage: document.getElementById('no-players-message'),
+  positionNeeds: document.getElementById('position-needs'),
   yourRoster: document.getElementById('your-roster'),
   recentPicksList: document.getElementById('recent-picks-list'),
 
   // Complete view
   completeView: document.getElementById('complete-view'),
   finalRosters: document.getElementById('final-rosters'),
+  downloadResultsButton: document.getElementById('download-results-button'),
 
   // Chat
   chatContainer: document.getElementById('chat-container'),
@@ -50,6 +60,7 @@ const elements = {
   chatInput: document.getElementById('chat-input'),
   chatToggleIcon: document.getElementById('chat-toggle-icon'),
   chatBody: document.getElementById('chat-body'),
+  chatUnread: document.getElementById('chat-unread'),
 
   // Notification
   notification: document.getElementById('notification')
@@ -67,21 +78,41 @@ function initializeSocket() {
   socket.on('joined', (data) => {
     localState.myTeamId = data.teamId;
     localState.myTeamName = data.teamName;
+    localState.isWatcher = false;
     // Use sessionStorage so each browser tab has its own session
     sessionStorage.setItem('playoffDraftTeamName', data.teamName);
     sessionStorage.setItem('playoffDraftTeamId', data.teamId);
-    console.log(`Joined as team: ${data.teamName}`);
-    updateSetupView();
+    sessionStorage.removeItem('playoffDraftWatcherName');
+    sessionStorage.removeItem('playoffDraftWatcherId');
+    console.log(`Joined as team: ${data.teamName} (ID: ${data.teamId})`);
+    // Re-render everything to update draft buttons with correct team context
+    renderCurrentView();
+  });
+
+  socket.on('joined-as-watcher', (data) => {
+    localState.myWatcherId = data.watcherId;
+    localState.myWatcherName = data.watcherName;
+    localState.isWatcher = true;
+    localState.myTeamId = null;
+    localState.myTeamName = null;
+    // Use sessionStorage so each browser tab has its own session
+    sessionStorage.setItem('playoffDraftWatcherName', data.watcherName);
+    sessionStorage.setItem('playoffDraftWatcherId', data.watcherId);
+    sessionStorage.removeItem('playoffDraftTeamName');
+    sessionStorage.removeItem('playoffDraftTeamId');
+    console.log(`Joined as watcher: ${data.watcherName} (ID: ${data.watcherId})`);
+    renderCurrentView();
   });
 
   socket.on('draft-state-updated', (state) => {
     // Check if this is a new draft or stale session
     const savedDraftId = sessionStorage.getItem('playoffDraftId');
     const savedTeamName = sessionStorage.getItem('playoffDraftTeamName');
+    const savedWatcherName = sessionStorage.getItem('playoffDraftWatcherName');
 
-    // It's stale if: different draft ID, OR has team name but no draft ID (old data)
+    // It's stale if: different draft ID, OR has team/watcher name but no draft ID (old data)
     const isStaleSession = (savedDraftId && savedDraftId !== state.draftId) ||
-                           (savedTeamName && !savedDraftId);
+                           ((savedTeamName || savedWatcherName) && !savedDraftId);
 
     if (isStaleSession) {
       // Clear ALL old data
@@ -91,16 +122,22 @@ function initializeSocket() {
       localStorage.removeItem('playoffDraftTeamId');
       localState.myTeamId = null;
       localState.myTeamName = null;
+      localState.myWatcherId = null;
+      localState.myWatcherName = null;
+      localState.isWatcher = false;
     }
 
     // Save current draft ID
     sessionStorage.setItem('playoffDraftId', state.draftId);
 
-    // Only try to reconnect if NOT stale and we have saved team info
+    // Only try to reconnect if NOT stale and we have saved info
     if (!isStaleSession) {
       const teamName = sessionStorage.getItem('playoffDraftTeamName');
+      const watcherName = sessionStorage.getItem('playoffDraftWatcherName');
       if (teamName && !localState.myTeamId) {
         socket.emit('join-draft', { teamName });
+      } else if (watcherName && !localState.myWatcherId) {
+        socket.emit('join-as-watcher', { watcherName });
       }
     }
 
@@ -145,6 +182,12 @@ function initializeSocket() {
     if (localState.chatMessages.length > 100) {
       localState.chatMessages.shift();
     }
+    // Track unread if chat is collapsed and message is from someone else
+    const myId = localState.isWatcher ? localState.myWatcherId : localState.myTeamId;
+    if (!localState.chatOpen && message.teamId !== myId) {
+      localState.unreadCount++;
+      updateUnreadBadge();
+    }
     renderChatMessages();
   });
 
@@ -182,13 +225,13 @@ function renderCurrentView() {
   } else if (phase === 'drafting') {
     localState.currentView = 'drafting';
     elements.draftView.style.display = 'block';
-    elements.chatContainer.style.display = 'block';
+    elements.chatContainer.style.display = 'flex';
     socket.emit('get-chat-history');
     renderDraftView();
   } else if (phase === 'complete') {
     localState.currentView = 'complete';
     elements.completeView.style.display = 'block';
-    elements.chatContainer.style.display = 'block';
+    elements.chatContainer.style.display = 'flex';
     renderCompleteView();
   }
 }
@@ -213,23 +256,41 @@ function renderSetupView() {
 function updateSetupView() {
   const state = localState.draftState;
 
-  // Show/hide join form vs joined message
+  // Show/hide join form vs joined/watching message
   if (localState.myTeamId) {
     elements.joinForm.style.display = 'none';
     elements.joinedMessage.style.display = 'block';
+    elements.watchingMessage.style.display = 'none';
     elements.yourTeamName.textContent = localState.myTeamName;
+  } else if (localState.isWatcher) {
+    elements.joinForm.style.display = 'none';
+    elements.joinedMessage.style.display = 'none';
+    elements.watchingMessage.style.display = 'block';
+    elements.yourWatcherName.textContent = localState.myWatcherName;
   } else {
     elements.joinForm.style.display = 'flex';
     elements.joinedMessage.style.display = 'none';
+    elements.watchingMessage.style.display = 'none';
   }
 
-  // Show/hide start button (only for joined users when 2+ teams)
-  if (state && state.teams.length >= 2 && localState.myTeamId) {
+  // Show/hide start button (only for BD Crushers team when 2+ teams)
+  const isBDCrushers = localState.myTeamName === 'BD Crushers';
+  if (state && state.teams.length >= 2 && localState.myTeamId && isBDCrushers) {
     elements.startDraftButton.style.display = 'block';
     elements.waitingMessage.style.display = 'none';
   } else if (localState.myTeamId) {
     elements.startDraftButton.style.display = 'none';
     elements.waitingMessage.style.display = 'block';
+    if (!isBDCrushers && state && state.teams.length >= 2) {
+      elements.waitingMessage.textContent = 'Waiting for BD Crushers to start the draft...';
+    } else {
+      elements.waitingMessage.textContent = 'Waiting for more teams to join...';
+    }
+  } else if (localState.isWatcher) {
+    // Watcher: show waiting message
+    elements.startDraftButton.style.display = 'none';
+    elements.waitingMessage.style.display = 'block';
+    elements.waitingMessage.textContent = 'Waiting for the draft to start...';
   } else {
     elements.startDraftButton.style.display = 'none';
     elements.waitingMessage.style.display = 'none';
@@ -239,11 +300,47 @@ function updateSetupView() {
 // Draft View
 function renderDraftView() {
   renderCurrentPickIndicator();
-  renderDraftOrder();
+  renderPauseResumeButton();
+  renderDraftTicker();
+  renderPositionNeeds();
   renderTeamsRosters();
   renderPlayersGrid();
   renderYourRoster();
   renderRecentPicks();
+}
+
+function renderPositionNeeds() {
+  const myTeam = findTeamById(localState.myTeamId);
+  if (!myTeam || !elements.positionNeeds) {
+    if (elements.positionNeeds) {
+      if (localState.isWatcher) {
+        elements.positionNeeds.innerHTML = '<span class="watcher-badge">Spectator Mode</span>';
+      } else {
+        elements.positionNeeds.innerHTML = '';
+      }
+    }
+    return;
+  }
+
+  const needs = [
+    { pos: 'QB', have: myTeam.roster.QB.length, need: 1 },
+    { pos: 'RB', have: myTeam.roster.RB.length, need: 2 },
+    { pos: 'WR/TE', have: myTeam.roster.WR_TE.length, need: 3 },
+    { pos: 'K', have: myTeam.roster.K.length, need: 1 }
+  ];
+
+  const html = needs.map(n => {
+    const filled = n.have >= n.need;
+    const posClass = n.pos === 'WR/TE' ? 'WR' : n.pos;
+    return `
+      <div class="need-badge ${filled ? 'filled' : ''}" data-position="${posClass}">
+        <span class="need-pos">${n.pos}</span>
+        <span class="need-count">${n.have}/${n.need}</span>
+      </div>
+    `;
+  }).join('');
+
+  elements.positionNeeds.innerHTML = html;
 }
 
 function renderCurrentPickIndicator() {
@@ -254,6 +351,7 @@ function renderCurrentPickIndicator() {
     elements.pickNumber.textContent = 'Draft Complete';
     elements.pickTeam.textContent = '';
     elements.currentPickIndicator.classList.remove('your-turn');
+    elements.currentPickIndicator.classList.remove('paused');
     return;
   }
 
@@ -263,23 +361,51 @@ function renderCurrentPickIndicator() {
 
   elements.pickNumber.textContent = `Round ${round}, Pick ${pickInRound} (Overall #${pickNum})`;
 
-  const isMyTurn = currentPicker.id === localState.myTeamId;
-  if (isMyTurn) {
-    elements.pickTeam.textContent = 'YOUR TURN!';
-    elements.currentPickIndicator.classList.add('your-turn');
-  } else {
-    elements.pickTeam.textContent = `${currentPicker.name} is on the clock`;
+  if (state.paused) {
+    elements.pickTeam.textContent = 'DRAFT PAUSED';
     elements.currentPickIndicator.classList.remove('your-turn');
+    elements.currentPickIndicator.classList.add('paused');
+  } else {
+    elements.currentPickIndicator.classList.remove('paused');
+    const isMyTurn = currentPicker.id === localState.myTeamId;
+    if (isMyTurn) {
+      elements.pickTeam.textContent = 'YOUR TURN!';
+      elements.currentPickIndicator.classList.add('your-turn');
+    } else {
+      elements.pickTeam.textContent = `${currentPicker.name} is on the clock`;
+      elements.currentPickIndicator.classList.remove('your-turn');
+    }
   }
 }
 
-function renderDraftOrder() {
+function renderPauseResumeButton() {
   const state = localState.draftState;
-  if (!state.draftOrder || state.draftOrder.length === 0) return;
+  const isBDCrushers = localState.myTeamName === 'BD Crushers';
 
-  // Show upcoming picks (current + next 10)
+  if (!isBDCrushers || !elements.pauseResumeBtn) {
+    if (elements.pauseResumeBtn) elements.pauseResumeBtn.style.display = 'none';
+    return;
+  }
+
+  elements.pauseResumeBtn.style.display = 'block';
+  if (state.paused) {
+    elements.pauseResumeBtn.textContent = 'Resume Draft';
+    elements.pauseResumeBtn.classList.add('resume');
+    elements.pauseResumeBtn.classList.remove('pause');
+  } else {
+    elements.pauseResumeBtn.textContent = 'Pause Draft';
+    elements.pauseResumeBtn.classList.add('pause');
+    elements.pauseResumeBtn.classList.remove('resume');
+  }
+}
+
+function renderDraftTicker() {
+  const state = localState.draftState;
+  if (!state.draftOrder || state.draftOrder.length === 0 || !elements.draftTicker) return;
+
+  // Show current pick + upcoming picks (enough to fill the ticker)
   const startIdx = state.currentPickIndex;
-  const endIdx = Math.min(startIdx + 11, state.draftOrder.length);
+  const endIdx = Math.min(startIdx + 16, state.draftOrder.length); // Show up to 16 upcoming
 
   let html = '';
   for (let i = startIdx; i < endIdx; i++) {
@@ -290,16 +416,18 @@ function renderDraftOrder() {
     const isCurrent = i === state.currentPickIndex;
     const isMe = team.id === localState.myTeamId;
     const pickNum = i + 1;
+    const round = Math.floor(i / state.teams.length) + 1;
 
     html += `
-      <div class="draft-pick ${isCurrent ? 'current' : ''} ${isMe ? 'my-pick' : ''}">
-        <span class="pick-num">#${pickNum}</span>
-        <span class="pick-team-name">${escapeHtml(team.name)}</span>
+      <div class="ticker-pick ${isCurrent ? 'current' : ''} ${isMe ? 'my-pick' : ''}">
+        <span class="ticker-round">R${round}</span>
+        <span class="ticker-num">#${pickNum}</span>
+        <span class="ticker-team">${escapeHtml(team.name)}</span>
       </div>
     `;
   }
 
-  elements.draftOrderList.innerHTML = html;
+  elements.draftTicker.innerHTML = html;
 }
 
 function renderTeamsRosters() {
@@ -355,21 +483,25 @@ function renderPlayersGrid() {
 
   elements.noPlayersMessage.style.display = 'none';
 
+  const state = localState.draftState;
   const currentPicker = getCurrentPicker();
   const isMyTurn = currentPicker && currentPicker.id === localState.myTeamId;
   const myTeam = findTeamById(localState.myTeamId);
+  const isPaused = state.paused;
 
   const html = players.map(player => {
-    const canDraft = isMyTurn && myTeam && canDraftPosition(myTeam, player.position);
-    const errorMsg = getCannotDraftReason(player, isMyTurn, myTeam);
+    const canDraft = !isPaused && isMyTurn && myTeam && canDraftPosition(myTeam, player.position);
+    const errorMsg = isPaused ? 'Draft is paused' : getCannotDraftReason(player, isMyTurn, myTeam);
+    const positionFilled = myTeam && !canDraftPosition(myTeam, player.position);
 
     return `
-      <div class="player-card">
+      <div class="player-card ${positionFilled ? 'position-filled' : ''}" data-position="${player.position}">
         <div class="player-info">
           <div class="player-name">${escapeHtml(player.name)}</div>
           <div class="player-details">
             <span class="position-badge position-${player.position}">${player.position}</span>
             <span class="team-abbr">${player.team}</span>
+            ${positionFilled ? '<span class="filled-indicator">FILLED</span>' : ''}
           </div>
         </div>
         <button
@@ -402,13 +534,16 @@ function filterPlayers() {
     players = players.filter(p => p.searchText.includes(query));
   }
 
-  // Sort by position then name
+  // Sort by position then last name
   const posOrder = { QB: 1, RB: 2, WR: 3, TE: 4, K: 5 };
   players.sort((a, b) => {
     if (posOrder[a.position] !== posOrder[b.position]) {
       return posOrder[a.position] - posOrder[b.position];
     }
-    return a.name.localeCompare(b.name);
+    // Extract last name (last word in the name)
+    const aLastName = a.name.split(' ').pop();
+    const bLastName = b.name.split(' ').pop();
+    return aLastName.localeCompare(bLastName);
   });
 
   return players;
@@ -438,7 +573,11 @@ function renderYourRoster() {
   const myTeam = findTeamById(localState.myTeamId);
 
   if (!myTeam) {
-    elements.yourRoster.innerHTML = '<p>Not in draft</p>';
+    if (localState.isWatcher) {
+      elements.yourRoster.innerHTML = '<p class="watcher-notice">Watching as spectator</p>';
+    } else {
+      elements.yourRoster.innerHTML = '<p>Not in draft</p>';
+    }
     return;
   }
 
@@ -476,6 +615,8 @@ function renderRosterPlayer(player) {
 function renderRecentPicks() {
   const state = localState.draftState;
   const recentPicks = state.picks.slice(-10).reverse();
+  const isBDCrushers = localState.myTeamName === 'BD Crushers';
+  const showUndo = isBDCrushers && state.paused;
 
   if (recentPicks.length === 0) {
     elements.recentPicksList.innerHTML = '<li class="no-picks">No picks yet</li>';
@@ -495,6 +636,7 @@ function renderRecentPicks() {
         <span class="pick-info">
           <strong>${escapeHtml(team.name)}</strong> - ${escapeHtml(player.name)} (${player.position})
         </span>
+        ${showUndo ? `<button class="undo-pick-btn" onclick="undoPick(${pick.pickNumber})" title="Undo this pick">×</button>` : ''}
       </li>
     `;
   }).join('');
@@ -542,6 +684,12 @@ function renderCompleteView() {
   }).join('');
 
   elements.finalRosters.innerHTML = html;
+
+  // Show download button only for BD Crushers
+  const isBDCrushers = localState.myTeamName === 'BD Crushers';
+  if (elements.downloadResultsButton) {
+    elements.downloadResultsButton.style.display = isBDCrushers ? 'block' : 'none';
+  }
 }
 
 // Helper functions
@@ -575,6 +723,15 @@ function handleJoinDraft() {
   socket.emit('join-draft', { teamName });
 }
 
+function handleWatchDraft() {
+  const watcherName = elements.teamNameInput.value.trim();
+  if (!watcherName) {
+    alert('Please enter your name');
+    return;
+  }
+  socket.emit('join-as-watcher', { watcherName });
+}
+
 function handleStartDraft() {
   socket.emit('start-draft');
 }
@@ -602,6 +759,22 @@ function downloadResults() {
     });
 }
 
+function togglePause() {
+  const state = localState.draftState;
+  if (state.paused) {
+    socket.emit('resume-draft');
+  } else {
+    socket.emit('pause-draft');
+  }
+}
+
+function undoPick(pickNumber) {
+  if (!confirm(`Are you sure you want to undo pick #${pickNumber}?`)) {
+    return;
+  }
+  socket.emit('undo-pick', { pickNumber });
+}
+
 function handlePositionFilter(position) {
   localState.selectedPosition = position;
 
@@ -623,7 +796,10 @@ function setupEventListeners() {
   // Join button
   elements.joinButton.addEventListener('click', handleJoinDraft);
 
-  // Enter key on team name input
+  // Watch button
+  elements.watchButton.addEventListener('click', handleWatchDraft);
+
+  // Enter key on team name input (default to join as team)
   elements.teamNameInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleJoinDraft();
   });
@@ -654,8 +830,9 @@ function renderChatMessages() {
   const container = elements.chatMessages;
   if (!container) return;
 
+  const myId = localState.isWatcher ? localState.myWatcherId : localState.myTeamId;
   const html = localState.chatMessages.map(msg => {
-    const isMe = msg.teamId === localState.myTeamId;
+    const isMe = msg.teamId === myId;
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return `
       <div class="chat-message ${isMe ? 'my-message' : ''}">
@@ -682,14 +859,35 @@ function sendChatMessage() {
 
 function toggleChat() {
   localState.chatOpen = !localState.chatOpen;
-  elements.chatBody.style.display = localState.chatOpen ? 'flex' : 'none';
-  elements.chatToggleIcon.textContent = localState.chatOpen ? '▼' : '▲';
+  if (localState.chatOpen) {
+    elements.chatContainer.classList.remove('chat-collapsed');
+    elements.chatContainer.classList.add('chat-expanded');
+    // Clear unread when opening
+    localState.unreadCount = 0;
+    updateUnreadBadge();
+    // Scroll to bottom
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+  } else {
+    elements.chatContainer.classList.remove('chat-expanded');
+    elements.chatContainer.classList.add('chat-collapsed');
+  }
+}
+
+function updateUnreadBadge() {
+  if (localState.unreadCount > 0) {
+    elements.chatUnread.textContent = localState.unreadCount > 99 ? '99+' : localState.unreadCount;
+    elements.chatUnread.style.display = 'inline';
+  } else {
+    elements.chatUnread.style.display = 'none';
+  }
 }
 
 // Make functions available globally
 window.toggleTeamDetail = toggleTeamDetail;
 window.draftPlayer = draftPlayer;
 window.downloadResults = downloadResults;
+window.togglePause = togglePause;
+window.undoPick = undoPick;
 window.sendChatMessage = sendChatMessage;
 window.toggleChat = toggleChat;
 

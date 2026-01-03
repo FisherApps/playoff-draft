@@ -10,16 +10,23 @@
   <!-- Setup Phase View -->
   <div id="setup-view" class="view">
     <div class="setup-container">
-      <h1>Playoff Fantasy Football Draft</h1>
-      <p class="subtitle">Draft players from the 2024-2025 NFL Playoff Teams</p>
+      <h1>Bay Area Fantasy Football League</h1>
+      <p class="subtitle">2024-2025 NFL Playoffs Draft</p>
 
       <div id="join-form">
         <input type="text" id="team-name-input" placeholder="Enter your team name" maxlength="20">
-        <button id="join-button">Join Draft</button>
+        <div id="join-buttons">
+          <button id="join-button">Join as Team</button>
+          <button id="watch-button" class="watch-btn">Watch Only</button>
+        </div>
       </div>
 
       <div id="joined-message" style="display: none;">
         <p>You joined as: <strong id="your-team-name"></strong></p>
+      </div>
+
+      <div id="watching-message" style="display: none;">
+        <p>Watching as: <strong id="your-watcher-name"></strong> (Spectator)</p>
       </div>
 
       <div id="teams-list">
@@ -35,20 +42,24 @@
   <!-- Draft Phase View -->
   <div id="draft-view" class="view" style="display: none;">
     <div id="draft-header">
-      <h1>Playoff Fantasy Draft</h1>
+      <div id="header-left">
+        <h1>Bay Area Fantasy Football League</h1>
+      </div>
       <div id="current-pick-indicator">
         <div id="pick-number"></div>
         <div id="pick-team"></div>
       </div>
+      <button id="pause-resume-btn" style="display: none;" onclick="togglePause()"></button>
+    </div>
+
+    <!-- Horizontal Draft Ticker -->
+    <div id="draft-ticker">
+      <div id="draft-ticker-inner"></div>
     </div>
 
     <div id="draft-main">
-      <!-- Left sidebar: Draft order & teams -->
+      <!-- Left sidebar: Teams -->
       <aside id="draft-sidebar">
-        <div id="draft-order-section">
-          <h2>Draft Order</h2>
-          <div id="draft-order-list"></div>
-        </div>
         <div id="teams-section">
           <h2>All Teams</h2>
           <div id="teams-roster-list"></div>
@@ -58,7 +69,10 @@
       <!-- Center: Available players -->
       <main id="players-section">
         <div id="players-header">
-          <h2>Available Players</h2>
+          <div id="header-top-row">
+            <h2>Available Players</h2>
+            <div id="position-needs"></div>
+          </div>
           <div id="filters">
             <div id="position-filter">
               <button class="filter-btn active" data-position="ALL">All</button>
@@ -93,17 +107,18 @@
   <div id="complete-view" class="view" style="display: none;">
     <div class="complete-container">
       <h1>Draft Complete!</h1>
-      <p class="subtitle">All teams have completed their rosters</p>
-      <button id="download-results-button" class="download-btn" onclick="downloadResults()">Download Results</button>
+      <p class="subtitle">Good Luck! And whoever wins, Go Niners!</p>
+      <button id="download-results-button" class="download-btn" onclick="downloadResults()" style="display: none;">Download Results</button>
       <div id="final-rosters"></div>
     </div>
   </div>
 
-  <!-- Chat Box (visible during draft) -->
-  <div id="chat-container" style="display: none;">
+  <!-- League Chat (floating panel) -->
+  <div id="chat-container" class="chat-collapsed">
     <div id="chat-header" onclick="toggleChat()">
-      <span>League Chat</span>
-      <span id="chat-toggle-icon">▼</span>
+      <span id="chat-title">League Chat</span>
+      <span id="chat-unread" class="chat-unread-badge" style="display: none;">0</span>
+      <span id="chat-toggle-icon">▲</span>
     </div>
     <div id="chat-body">
       <div id="chat-messages"></div>
